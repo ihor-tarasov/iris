@@ -1,6 +1,6 @@
 use std::iter::{Cloned, Enumerate, Peekable};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Token {
     Integer,
     Plus,     // +

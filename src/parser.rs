@@ -9,7 +9,7 @@ use crate::{
 
 pub type ParseResult = Result<Expression, Error>;
 
-fn end_of_file_location() -> std::ops::Range<usize> {
+fn end_of_file_location() -> Range<usize> {
     0..0
 }
 
@@ -54,44 +54,49 @@ fn parse_primary(it: &mut PeekableTokenIterator) -> ParseResult {
     }
 }
 
-fn parse_factor(it: &mut PeekableTokenIterator) -> ParseResult {
-    let mut lhs = parse_primary(it)?;
+fn term_mapper(token: Token) -> Option<Opcode> {
+    match token {
+        Token::Plus => Some(Opcode::Addict),
+        _ => None,
+    }
+}
+
+fn factor_mapper(token: Token) -> Option<Opcode> {
+    match token {
+        Token::Asterisk => Some(Opcode::Multiply),
+        _ => None,
+    }
+}
+
+fn parse_binary(
+    it: &mut PeekableTokenIterator,
+    next: fn(&mut PeekableTokenIterator) -> ParseResult,
+    mapper: fn(Token) -> Option<Opcode>,
+) -> ParseResult {
+    let mut lhs = (next)(it)?;
     while let Some(token_info) = it.peek() {
-        match token_info.token {
-            Token::Asterisk => {
-                let location = it.next().unwrap().location;
-                let rhs = parse_primary(it)?;
+        if let Some(opcode) = (mapper)(token_info.token) {
+            let location = it.next().unwrap().location;
+            let rhs = (next)(it)?;
                 lhs = Expression::Binary(Binary {
                     lhs: Box::new(lhs),
                     rhs: Box::new(rhs),
-                    opcode: Opcode::Multiply,
+                    opcode,
                     location,
                 });
-            }
-            _ => break,
+        } else {
+            break;
         }
     }
     Ok(lhs)
 }
 
+fn parse_factor(it: &mut PeekableTokenIterator) -> ParseResult {
+    parse_binary(it, parse_primary, factor_mapper)
+}
+
 fn parse_term(it: &mut PeekableTokenIterator) -> ParseResult {
-    let mut lhs = parse_factor(it)?;
-    while let Some(token_info) = it.peek() {
-        match token_info.token {
-            Token::Plus => {
-                let location = it.next().unwrap().location;
-                let rhs = parse_factor(it)?;
-                lhs = Expression::Binary(Binary {
-                    lhs: Box::new(lhs),
-                    rhs: Box::new(rhs),
-                    opcode: Opcode::Addict,
-                    location,
-                });
-            }
-            _ => break,
-        }
-    }
-    Ok(lhs)
+    parse_binary(it, parse_factor, term_mapper)
 }
 
 fn parse_expression(it: &mut PeekableTokenIterator) -> ParseResult {
@@ -102,10 +107,16 @@ pub fn parse(it: &mut PeekableTokenIterator) -> ParseResult {
     let result = parse_expression(it)?;
 
     match it.next() {
-        Some(token_info) => Err(Error {
-            message: format!("Expected end, but found token."),
-            location: token_info.location,
-        }),
+        Some(token_info) => {
+            if token_info.token == Token::Unknown {
+                unknown(token_info.location)
+            } else {
+                Err(Error {
+                    message: format!("Expected end, but found token."),
+                    location: token_info.location,
+                })
+            }
+        }
         None => Ok(result),
     }
 }

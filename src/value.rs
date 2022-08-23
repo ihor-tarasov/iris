@@ -1,6 +1,16 @@
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+use std::fmt;
+
+#[derive(PartialEq, Eq, Hash, Clone, Copy)]
 pub enum Value {
     Integer(i64),
+}
+
+impl fmt::Debug for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            Value::Integer(value) => write!(f, "{}", value),
+        }
+    }
 }
 
 pub type OperatorResult = Result<Value, String>;
