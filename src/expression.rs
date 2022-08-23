@@ -1,9 +1,10 @@
 use crate::{
-    common::Error, function::FunctionBuilder, module::ModuleBuilder, opcode::Opcode, value::Value,
+    common::Error, function::FunctionBuilder, module::ModuleBuilder, opcode::Opcode, value::{Value, Real},
 };
 
 pub enum LiteralType {
     Integer,
+    Real,
 }
 
 pub struct Literal {
@@ -15,6 +16,10 @@ fn parse_integer(source: &[u8]) -> Value {
     Value::Integer(std::str::from_utf8(source).unwrap().parse::<i64>().unwrap())
 }
 
+fn parse_real(source: &[u8]) -> Value {
+    Value::Real(Real(std::str::from_utf8(source).unwrap().parse::<f64>().unwrap()))
+}
+
 impl Literal {
     pub fn build(
         &self,
@@ -24,6 +29,7 @@ impl Literal {
         let source = &module_builder.source[self.location.clone()];
         let value = match self.literal_type {
             LiteralType::Integer => parse_integer(source),
+            LiteralType::Real => parse_real(source),
         };
         let constant_index = module_builder.push_constant(value);
         function_builder.push(Opcode::Constant(constant_index), self.location.clone());

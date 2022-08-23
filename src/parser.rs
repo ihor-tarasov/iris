@@ -49,6 +49,10 @@ fn parse_primary(it: &mut PeekableTokenIterator) -> ParseResult {
             literal_type: LiteralType::Integer,
             location: token_info.location,
         })),
+        Token::Real => Ok(Expression::Literal(Literal {
+            literal_type: LiteralType::Real,
+            location: token_info.location,
+        })),
         Token::Unknown => unknown(token_info.location),
         _ => unexpected(token_info.location),
     }

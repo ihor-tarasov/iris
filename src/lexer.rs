@@ -3,6 +3,7 @@ use std::iter::{Cloned, Enumerate, Peekable};
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Token {
     Integer,
+    Real,
     Plus,     // +
     Asterisk, // *
     Unknown,
@@ -39,8 +40,16 @@ impl<'a> TokenIterator<'a> {
     fn read_number(&mut self) -> Option<TokenInfo> {
         let (begin, _) = *self.0.peek()?;
         let mut end = begin;
+        let mut is_real = false;
         while let Some(&(_, c)) = self.0.peek() {
-            if c.is_ascii_digit() {
+            if c.is_ascii_digit() || c == b'.' {
+                if c == b'.' {
+                    if is_real {
+                        break;
+                    } else {
+                        is_real = true;
+                    }
+                }
                 self.0.next().unwrap();
                 end += 1;
             } else {
@@ -51,7 +60,7 @@ impl<'a> TokenIterator<'a> {
             None
         } else {
             Some(TokenInfo {
-                token: Token::Integer,
+                token: if is_real { Token::Real } else { Token::Integer },
                 location: begin..end,
             })
         }
