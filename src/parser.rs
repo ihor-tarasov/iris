@@ -54,6 +54,24 @@ fn parse_primary(it: &mut PeekableTokenIterator) -> ParseResult {
     }
 }
 
+fn equality_mapper(token: Token) -> Option<Opcode> {
+    match token {
+        Token::EqualEqual => Some(Opcode::Equal),
+        Token::ExclamationEqual => Some(Opcode::NotEqual),
+        _ => None,
+    }
+}
+
+fn comparison_mapper(token: Token) -> Option<Opcode> {
+    match token {
+        Token::Less => Some(Opcode::Less),
+        Token::LessEqual => Some(Opcode::LessEqual),
+        Token::Greater => Some(Opcode::Greater),
+        Token::GreaterEqual => Some(Opcode::GreaterEqual),
+        _ => None,
+    }
+}
+
 fn term_mapper(token: Token) -> Option<Opcode> {
     match token {
         Token::Plus => Some(Opcode::Addict),
@@ -117,8 +135,16 @@ fn parse_term(it: &mut PeekableTokenIterator) -> ParseResult {
     parse_binary(it, parse_factor, term_mapper)
 }
 
+fn parse_comparison(it: &mut PeekableTokenIterator) -> ParseResult {
+    parse_binary(it, parse_term, comparison_mapper)
+}
+
+fn parse_equality(it: &mut PeekableTokenIterator) -> ParseResult {
+    parse_binary(it, parse_comparison, equality_mapper)
+}
+
 fn parse_expression(it: &mut PeekableTokenIterator) -> ParseResult {
-    parse_term(it)
+    parse_equality(it)
 }
 
 pub fn parse(it: &mut PeekableTokenIterator) -> ParseResult {

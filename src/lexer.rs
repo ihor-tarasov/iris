@@ -4,16 +4,22 @@ use std::iter::{Cloned, Enumerate, Peekable};
 pub enum Token {
     Integer,
     Real,
-    Plus,           // +
-    Minus,          // -
-    Asterisk,       // *
-    Slash,          // /
-    Percent,        // %
-    LessLess,       // <<
-    GreaterGreater, // >>
-    Ampersand,      // &
-    VerticalBar,    // |
-    Circumflex,     // ^
+    Plus,             // +
+    Minus,            // -
+    Asterisk,         // *
+    Slash,            // /
+    Percent,          // %
+    LessLess,         // <<
+    GreaterGreater,   // >>
+    Ampersand,        // &
+    VerticalBar,      // |
+    Circumflex,       // ^
+    Less,             // <
+    Greater,          // >
+    LessEqual,        // <=
+    GreaterEqual,     // >=
+    EqualEqual,       // ==
+    ExclamationEqual, // !=
     Unknown,
 }
 
@@ -39,6 +45,8 @@ fn parse_single_token(c: u8) -> Token {
         b'&' => Token::Ampersand,
         b'|' => Token::VerticalBar,
         b'^' => Token::Circumflex,
+        b'<' => Token::Less,
+        b'>' => Token::Greater,
         _ => Token::Unknown,
     }
 }
@@ -47,6 +55,10 @@ fn parse_double_token(c1: u8, c2: u8) -> Option<Token> {
     match (c1, c2) {
         (b'>', b'>') => Some(Token::GreaterGreater),
         (b'<', b'<') => Some(Token::LessLess),
+        (b'=', b'=') => Some(Token::EqualEqual),
+        (b'!', b'=') => Some(Token::ExclamationEqual),
+        (b'>', b'=') => Some(Token::GreaterEqual),
+        (b'<', b'=') => Some(Token::LessEqual),
         _ => None,
     }
 }

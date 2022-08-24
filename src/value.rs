@@ -17,6 +17,7 @@ impl Hash for Real {
 
 #[derive(PartialEq, Eq, Hash, Clone, Copy)]
 pub enum Value {
+    Bool(bool),
     Integer(i64),
     Real(Real),
 }
@@ -24,6 +25,7 @@ pub enum Value {
 impl fmt::Debug for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
+            Value::Bool(value) => write!(f, "{}", value),
             Value::Integer(value) => write!(f, "{}", value),
             Value::Real(value) => write!(f, "{}", value.0),
         }
@@ -32,6 +34,7 @@ impl fmt::Debug for Value {
 
 fn type_name(value: Value) -> &'static str {
     match value {
+        Value::Bool(_) => "bool",
         Value::Integer(_) => "int",
         Value::Real(_) => "real",
     }
@@ -48,6 +51,12 @@ pub trait IntOperator {
 }
 
 pub trait IntRealOperator {
+    fn eval_int(lhs: i64, rhs: i64) -> OperatorResult;
+    fn eval_real(lhs: f64, rhs: f64) -> OperatorResult;
+}
+
+pub trait BoolIntRealOperator {
+    fn eval_bool(lhs: bool, rhs: bool) -> OperatorResult;
     fn eval_int(lhs: i64, rhs: i64) -> OperatorResult;
     fn eval_real(lhs: f64, rhs: f64) -> OperatorResult;
 }
@@ -182,17 +191,106 @@ impl IntRealOperator for Modulo {
     }
 }
 
-pub struct Arithmetic<T: IntRealOperator> {
+pub struct Less;
+
+impl IntRealOperator for Less {
+    fn eval_int(lhs: i64, rhs: i64) -> OperatorResult {
+        Ok(Value::Bool(lhs < rhs))
+    }
+
+    fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
+        Ok(Value::Bool(lhs < rhs))
+    }
+}
+
+pub struct Greater;
+
+impl IntRealOperator for Greater {
+    fn eval_int(lhs: i64, rhs: i64) -> OperatorResult {
+        Ok(Value::Bool(lhs > rhs))
+    }
+
+    fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
+        Ok(Value::Bool(lhs > rhs))
+    }
+}
+
+pub struct LessEqual;
+
+impl IntRealOperator for LessEqual {
+    fn eval_int(lhs: i64, rhs: i64) -> OperatorResult {
+        Ok(Value::Bool(lhs <= rhs))
+    }
+
+    fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
+        Ok(Value::Bool(lhs <= rhs))
+    }
+}
+
+pub struct GreaterEqual;
+
+impl IntRealOperator for GreaterEqual {
+    fn eval_int(lhs: i64, rhs: i64) -> OperatorResult {
+        Ok(Value::Bool(lhs >= rhs))
+    }
+
+    fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
+        Ok(Value::Bool(lhs >= rhs))
+    }
+}
+
+pub struct Equal;
+
+impl BoolIntRealOperator for Equal {
+    fn eval_bool(lhs: bool, rhs: bool) -> OperatorResult {
+        Ok(Value::Bool(lhs == rhs))
+    }
+
+    fn eval_int(lhs: i64, rhs: i64) -> OperatorResult {
+        Ok(Value::Bool(lhs == rhs))
+    }
+
+    fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
+        Ok(Value::Bool(lhs == rhs))
+    }
+}
+
+pub struct NotEqual;
+
+impl BoolIntRealOperator for NotEqual {
+    fn eval_bool(lhs: bool, rhs: bool) -> OperatorResult {
+        Ok(Value::Bool(lhs != rhs))
+    }
+
+    fn eval_int(lhs: i64, rhs: i64) -> OperatorResult {
+        Ok(Value::Bool(lhs != rhs))
+    }
+
+    fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
+        Ok(Value::Bool(lhs != rhs))
+    }
+}
+
+fn unable_to_use(lhs: Value, rhs: Value) -> OperatorResult {
+    Err(format!(
+        "Unable to use such types ({} and {}) in bitwise operation.",
+        type_name(lhs),
+        type_name(rhs)
+    ))
+}
+
+pub struct ArithmeticOrComparison<T: IntRealOperator> {
     phantom: PhantomData<T>,
 }
 
-impl<T: IntRealOperator> BinaryOperator for Arithmetic<T> {
+impl<T: IntRealOperator> BinaryOperator for ArithmeticOrComparison<T> {
     fn eval(lhs: Value, rhs: Value) -> OperatorResult {
         match (lhs, rhs) {
             (Value::Integer(lhs), Value::Integer(rhs)) => T::eval_int(lhs, rhs),
             (Value::Integer(lhs), Value::Real(rhs)) => T::eval_real(lhs as f64, rhs.0),
             (Value::Real(lhs), Value::Integer(rhs)) => T::eval_real(lhs.0, rhs as f64),
             (Value::Real(lhs), Value::Real(rhs)) => T::eval_real(lhs.0, rhs.0),
+            _ => unable_to_use(lhs, rhs),
         }
     }
 }
@@ -205,11 +303,24 @@ impl<T: IntOperator> BinaryOperator for Bitwise<T> {
     fn eval(lhs: Value, rhs: Value) -> OperatorResult {
         match (lhs, rhs) {
             (Value::Integer(lhs), Value::Integer(rhs)) => T::eval(lhs, rhs),
-            _ => Err(format!(
-                "Unable to use such types ({} and {}) in bitwise operation.",
-                type_name(lhs),
-                type_name(rhs)
-            )),
+            _ => unable_to_use(lhs, rhs),
+        }
+    }
+}
+
+pub struct Equality<T: BoolIntRealOperator> {
+    phantom: PhantomData<T>,
+}
+
+impl<T: BoolIntRealOperator> BinaryOperator for Equality<T> {
+    fn eval(lhs: Value, rhs: Value) -> OperatorResult {
+        match (lhs, rhs) {
+            (Value::Bool(lhs), Value::Bool(rhs)) => T::eval_bool(lhs, rhs),
+            (Value::Integer(lhs), Value::Integer(rhs)) => T::eval_int(lhs, rhs),
+            (Value::Integer(lhs), Value::Real(rhs)) => T::eval_real(lhs as f64, rhs.0),
+            (Value::Real(lhs), Value::Integer(rhs)) => T::eval_real(lhs.0, rhs as f64),
+            (Value::Real(lhs), Value::Real(rhs)) => T::eval_real(lhs.0, rhs.0),
+            _ => unable_to_use(lhs, rhs),
         }
     }
 }

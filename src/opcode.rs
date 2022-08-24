@@ -11,4 +11,10 @@ pub enum Opcode {
     Xor,
     Shl,
     Shr,
+    Equal,
+    NotEqual,
+    Greater,
+    Less,
+    GreaterEqual,
+    LessEqual,
 }

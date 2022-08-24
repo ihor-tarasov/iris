@@ -40,16 +40,24 @@ impl Program {
                 Opcode::Constant(index) => state
                     .stack
                     .push(self.modules[state.module_index].constants[index]),
-                Opcode::Addict => self.binary::<Arithmetic<Addict>>(state)?,
-                Opcode::Subtract => self.binary::<Arithmetic<Subtract>>(state)?,
-                Opcode::Multiply => self.binary::<Arithmetic<Multiply>>(state)?,
-                Opcode::Divide => self.binary::<Arithmetic<Divide>>(state)?,
-                Opcode::Modulo => self.binary::<Arithmetic<Modulo>>(state)?,
+                Opcode::Addict => self.binary::<ArithmeticOrComparison<Addict>>(state)?,
+                Opcode::Subtract => self.binary::<ArithmeticOrComparison<Subtract>>(state)?,
+                Opcode::Multiply => self.binary::<ArithmeticOrComparison<Multiply>>(state)?,
+                Opcode::Divide => self.binary::<ArithmeticOrComparison<Divide>>(state)?,
+                Opcode::Modulo => self.binary::<ArithmeticOrComparison<Modulo>>(state)?,
                 Opcode::And => self.binary::<Bitwise<And>>(state)?,
                 Opcode::Or => self.binary::<Bitwise<Or>>(state)?,
                 Opcode::Xor => self.binary::<Bitwise<Xor>>(state)?,
                 Opcode::Shl => self.binary::<Bitwise<Shl>>(state)?,
                 Opcode::Shr => self.binary::<Bitwise<Shr>>(state)?,
+                Opcode::Equal => self.binary::<Equality<Equal>>(state)?,
+                Opcode::NotEqual => self.binary::<Equality<NotEqual>>(state)?,
+                Opcode::Greater => self.binary::<ArithmeticOrComparison<Greater>>(state)?,
+                Opcode::Less => self.binary::<ArithmeticOrComparison<Less>>(state)?,
+                Opcode::GreaterEqual => {
+                    self.binary::<ArithmeticOrComparison<GreaterEqual>>(state)?
+                }
+                Opcode::LessEqual => self.binary::<ArithmeticOrComparison<LessEqual>>(state)?,
             }
             state.opcode_index += 1;
         }
