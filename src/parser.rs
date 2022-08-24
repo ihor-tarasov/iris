@@ -57,6 +57,7 @@ fn parse_primary(it: &mut PeekableTokenIterator) -> ParseResult {
 fn term_mapper(token: Token) -> Option<Opcode> {
     match token {
         Token::Plus => Some(Opcode::Addict),
+        Token::Minus => Some(Opcode::Subtract),
         _ => None,
     }
 }
@@ -64,6 +65,7 @@ fn term_mapper(token: Token) -> Option<Opcode> {
 fn factor_mapper(token: Token) -> Option<Opcode> {
     match token {
         Token::Asterisk => Some(Opcode::Multiply),
+        Token::Slash => Some(Opcode::Divide),
         _ => None,
     }
 }

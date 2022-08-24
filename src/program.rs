@@ -41,7 +41,9 @@ impl Program {
                     .stack
                     .push(self.modules[state.module_index].constants[index]),
                 Opcode::Addict => self.binary::<Arithmetic<Addict>>(state)?,
+                Opcode::Subtract => self.binary::<Arithmetic<Subtract>>(state)?,
                 Opcode::Multiply => self.binary::<Arithmetic<Multiply>>(state)?,
+                Opcode::Divide => self.binary::<Arithmetic<Divide>>(state)?,
             }
             state.opcode_index += 1;
         }

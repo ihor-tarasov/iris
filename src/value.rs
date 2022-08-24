@@ -52,6 +52,18 @@ impl IntRealOperator for Addict {
     }
 }
 
+pub struct Subtract;
+
+impl IntRealOperator for Subtract {
+    fn eval_int(lhs: i64, rhs: i64) -> OperatorResult {
+        Ok(Value::Integer(lhs.wrapping_sub(rhs)))
+    }
+
+    fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
+        Ok(Value::Real(Real(lhs - rhs)))
+    }
+}
+
 pub struct Multiply;
 
 impl IntRealOperator for Multiply {
@@ -61,6 +73,22 @@ impl IntRealOperator for Multiply {
 
     fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
         Ok(Value::Real(Real(lhs * rhs)))
+    }
+}
+
+pub struct Divide;
+
+impl IntRealOperator for Divide {
+    fn eval_int(lhs: i64, rhs: i64) -> OperatorResult {
+        if rhs == 0 {
+            Err(format!("Dividing by zero."))
+        } else {
+            Ok(Value::Integer(lhs.wrapping_div(rhs)))
+        }
+    }
+
+    fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
+        Ok(Value::Real(Real(lhs / rhs)))
     }
 }
 

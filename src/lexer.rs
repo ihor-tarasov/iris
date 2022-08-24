@@ -5,7 +5,9 @@ pub enum Token {
     Integer,
     Real,
     Plus,     // +
+    Minus,    // -
     Asterisk, // *
+    Slash,    // /
     Unknown,
 }
 
@@ -70,7 +72,9 @@ impl<'a> TokenIterator<'a> {
         let (begin, c) = self.0.next()?;
         let token = match c {
             b'+' => Token::Plus,
+            b'-' => Token::Minus,
             b'*' => Token::Asterisk,
+            b'/' => Token::Slash,
             _ => Token::Unknown,
         };
         Some(TokenInfo {
