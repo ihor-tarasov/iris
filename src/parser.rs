@@ -66,6 +66,7 @@ fn factor_mapper(token: Token) -> Option<Opcode> {
     match token {
         Token::Asterisk => Some(Opcode::Multiply),
         Token::Slash => Some(Opcode::Divide),
+        Token::Percent => Some(Opcode::Modulo),
         _ => None,
     }
 }

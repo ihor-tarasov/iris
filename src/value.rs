@@ -92,6 +92,22 @@ impl IntRealOperator for Divide {
     }
 }
 
+pub struct Modulo;
+
+impl IntRealOperator for Modulo {
+    fn eval_int(lhs: i64, rhs: i64) -> OperatorResult {
+        if rhs == 0 {
+            Err(format!("Dividing by zero."))
+        } else {
+            Ok(Value::Integer(lhs % rhs))
+        }
+    }
+
+    fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
+        Ok(Value::Real(Real(lhs % rhs)))
+    }
+}
+
 pub struct Arithmetic<T: IntRealOperator> {
     phantom: std::marker::PhantomData<T>,
 }

@@ -44,6 +44,7 @@ impl Program {
                 Opcode::Subtract => self.binary::<Arithmetic<Subtract>>(state)?,
                 Opcode::Multiply => self.binary::<Arithmetic<Multiply>>(state)?,
                 Opcode::Divide => self.binary::<Arithmetic<Divide>>(state)?,
+                Opcode::Modulo => self.binary::<Arithmetic<Modulo>>(state)?,
             }
             state.opcode_index += 1;
         }

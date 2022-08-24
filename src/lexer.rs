@@ -8,6 +8,7 @@ pub enum Token {
     Minus,    // -
     Asterisk, // *
     Slash,    // /
+    Percent,  // %
     Unknown,
 }
 
@@ -75,6 +76,7 @@ impl<'a> TokenIterator<'a> {
             b'-' => Token::Minus,
             b'*' => Token::Asterisk,
             b'/' => Token::Slash,
+            b'%' => Token::Percent,
             _ => Token::Unknown,
         };
         Some(TokenInfo {
