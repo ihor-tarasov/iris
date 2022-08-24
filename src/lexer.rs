@@ -4,11 +4,16 @@ use std::iter::{Cloned, Enumerate, Peekable};
 pub enum Token {
     Integer,
     Real,
-    Plus,     // +
-    Minus,    // -
-    Asterisk, // *
-    Slash,    // /
-    Percent,  // %
+    Plus,           // +
+    Minus,          // -
+    Asterisk,       // *
+    Slash,          // /
+    Percent,        // %
+    LessLess,       // <<
+    GreaterGreater, // >>
+    Ampersand,      // &
+    VerticalBar,    // |
+    Circumflex,     // ^
     Unknown,
 }
 
@@ -22,6 +27,28 @@ pub struct TokenIterator<'a>(Peekable<Enumerate<Cloned<std::slice::Iter<'a, u8>>
 
 fn is_whitespace(c: u8) -> bool {
     c == b' ' || c == b'\t' || c == b'\r' || c == b'\n'
+}
+
+fn parse_single_token(c: u8) -> Token {
+    match c {
+        b'+' => Token::Plus,
+        b'-' => Token::Minus,
+        b'*' => Token::Asterisk,
+        b'/' => Token::Slash,
+        b'%' => Token::Percent,
+        b'&' => Token::Ampersand,
+        b'|' => Token::VerticalBar,
+        b'^' => Token::Circumflex,
+        _ => Token::Unknown,
+    }
+}
+
+fn parse_double_token(c1: u8, c2: u8) -> Option<Token> {
+    match (c1, c2) {
+        (b'>', b'>') => Some(Token::GreaterGreater),
+        (b'<', b'<') => Some(Token::LessLess),
+        _ => None,
+    }
 }
 
 impl<'a> TokenIterator<'a> {
@@ -70,18 +97,20 @@ impl<'a> TokenIterator<'a> {
     }
 
     fn read_simple(&mut self) -> Option<TokenInfo> {
-        let (begin, c) = self.0.next()?;
-        let token = match c {
-            b'+' => Token::Plus,
-            b'-' => Token::Minus,
-            b'*' => Token::Asterisk,
-            b'/' => Token::Slash,
-            b'%' => Token::Percent,
-            _ => Token::Unknown,
-        };
-        Some(TokenInfo {
-            token,
-            location: begin..(begin + 1),
+        let (begin, c1) = self.0.next()?;
+        let (_, c2) = *self.0.peek().unwrap_or(&(0, b'\0'));
+        Some(match parse_double_token(c1, c2) {
+            Some(token) => {
+                self.0.next().unwrap();
+                TokenInfo {
+                    token,
+                    location: begin..(begin + 2),
+                }
+            }
+            None => TokenInfo {
+                token: parse_single_token(c1),
+                location: begin..(begin + 2),
+            },
         })
     }
 }

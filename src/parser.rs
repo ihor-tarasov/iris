@@ -71,6 +71,17 @@ fn factor_mapper(token: Token) -> Option<Opcode> {
     }
 }
 
+fn bitwise_mapper(token: Token) -> Option<Opcode> {
+    match token {
+        Token::Ampersand => Some(Opcode::And),
+        Token::VerticalBar => Some(Opcode::Or),
+        Token::Circumflex => Some(Opcode::Xor),
+        Token::GreaterGreater => Some(Opcode::Shr),
+        Token::LessLess => Some(Opcode::Shl),
+        _ => None,
+    }
+}
+
 fn parse_binary(
     it: &mut PeekableTokenIterator,
     next: fn(&mut PeekableTokenIterator) -> ParseResult,
@@ -94,8 +105,12 @@ fn parse_binary(
     Ok(lhs)
 }
 
+fn parse_bitwise(it: &mut PeekableTokenIterator) -> ParseResult {
+    parse_binary(it, parse_primary, bitwise_mapper)
+}
+
 fn parse_factor(it: &mut PeekableTokenIterator) -> ParseResult {
-    parse_binary(it, parse_primary, factor_mapper)
+    parse_binary(it, parse_bitwise, factor_mapper)
 }
 
 fn parse_term(it: &mut PeekableTokenIterator) -> ParseResult {

@@ -45,6 +45,11 @@ impl Program {
                 Opcode::Multiply => self.binary::<Arithmetic<Multiply>>(state)?,
                 Opcode::Divide => self.binary::<Arithmetic<Divide>>(state)?,
                 Opcode::Modulo => self.binary::<Arithmetic<Modulo>>(state)?,
+                Opcode::And => self.binary::<Bitwise<And>>(state)?,
+                Opcode::Or => self.binary::<Bitwise<Or>>(state)?,
+                Opcode::Xor => self.binary::<Bitwise<Xor>>(state)?,
+                Opcode::Shl => self.binary::<Bitwise<Shl>>(state)?,
+                Opcode::Shr => self.binary::<Bitwise<Shr>>(state)?,
             }
             state.opcode_index += 1;
         }

@@ -6,4 +6,9 @@ pub enum Opcode {
     Multiply,
     Divide,
     Modulo,
+    And,
+    Or,
+    Xor,
+    Shl,
+    Shr,
 }
