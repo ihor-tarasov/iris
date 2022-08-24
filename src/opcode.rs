@@ -17,4 +17,7 @@ pub enum Opcode {
     Less,
     GreaterEqual,
     LessEqual,
+    JumpFalse(usize),
+    JumpTrue(usize),
+    Jump(usize),
 }

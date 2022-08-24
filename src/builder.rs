@@ -29,5 +29,6 @@ pub fn build(expression: &Expression, builder: &mut Builder) -> Result<(), Error
     match expression {
         Expression::Literal(literal) => literal.build(builder),
         Expression::Binary(binary) => binary.build(builder),
+        Expression::BinaryLogic(binary_logic) => binary_logic.build(builder),
     }
 }

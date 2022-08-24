@@ -11,6 +11,8 @@ use crate::{
 pub enum LiteralType {
     Integer,
     Real,
+    True,
+    False,
 }
 
 pub struct Literal {
@@ -37,6 +39,8 @@ fn parse_literal(literal_type: LiteralType, source: &[u8]) -> Value {
     match literal_type {
         LiteralType::Integer => parse_integer(source),
         LiteralType::Real => parse_real(source),
+        LiteralType::True => Value::Bool(true),
+        LiteralType::False => Value::Bool(false),
     }
 }
 
@@ -74,7 +78,69 @@ impl Binary {
     }
 }
 
+pub enum BinaryLogicType {
+    And,
+    Or,
+}
+
+pub struct BinaryLogic {
+    pub lhs: Box<Expression>,
+    pub rhs: Box<Expression>,
+    pub logic_type: BinaryLogicType,
+    pub location: std::ops::Range<usize>,
+}
+
+/*
+a && b
+
+    {a}
+    jump_false set_false
+    {b}
+    jump expr_end
+set_false:
+    push_false
+expr_end:
+
+a || b
+
+    {a}
+    jump_true set_true
+    {b}
+    jump expr_end
+set_true:
+    push_true
+expr_end:
+*/
+impl BinaryLogic {
+    pub fn build(&self, builder: &mut Builder) -> Result<(), Error> {
+        builder::build(&self.lhs, builder)?;
+        let set_addr = builder.function_builder.push_unknown(self.location.clone());
+        builder::build(&self.rhs, builder)?;
+        let expr_end_addr = builder.function_builder.push_unknown(self.location.clone());
+        builder.function_builder.set(
+            set_addr,
+            match self.logic_type {
+                BinaryLogicType::And => Opcode::JumpFalse(builder.function_builder.len()),
+                BinaryLogicType::Or => Opcode::JumpTrue(builder.function_builder.len()),
+            },
+        );
+        build_constant(
+            Value::Bool(match self.logic_type {
+                BinaryLogicType::And => false,
+                BinaryLogicType::Or => true,
+            }),
+            self.location.clone(),
+            builder,
+        );
+        builder
+            .function_builder
+            .set(expr_end_addr, Opcode::Jump(builder.function_builder.len()));
+        Ok(())
+    }
+}
+
 pub enum Expression {
     Literal(Literal),
     Binary(Binary),
+    BinaryLogic(BinaryLogic),
 }

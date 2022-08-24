@@ -32,11 +32,13 @@ impl fmt::Debug for Value {
     }
 }
 
-fn type_name(value: Value) -> &'static str {
-    match value {
-        Value::Bool(_) => "bool",
-        Value::Integer(_) => "int",
-        Value::Real(_) => "real",
+impl Value {
+    pub fn type_name(self) -> &'static str {
+        match self {
+            Value::Bool(_) => "bool",
+            Value::Integer(_) => "int",
+            Value::Real(_) => "real",
+        }
     }
 }
 
@@ -274,8 +276,8 @@ impl BoolIntRealOperator for NotEqual {
 fn unable_to_use(lhs: Value, rhs: Value) -> OperatorResult {
     Err(format!(
         "Unable to use such types ({} and {}) in bitwise operation.",
-        type_name(lhs),
-        type_name(rhs)
+        lhs.type_name(),
+        rhs.type_name(),
     ))
 }
 

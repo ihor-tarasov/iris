@@ -25,6 +25,32 @@ impl Program {
             Err(message) => Err(Error {
                 message,
                 location: self.modules[state.module_index].functions[state.function_index]
+                    .locations[state.opcode_index - 1]
+                    .clone(),
+            }),
+        }
+    }
+
+    fn jump(&mut self, state: &mut State, position: usize) {
+        state.opcode_index = position;
+    }
+
+    fn jump_if(&mut self, state: &mut State, value: bool, position: usize) -> Result<(), Error> {
+        let value_from_stack = state.stack.pop().unwrap();
+        match value_from_stack {
+            Value::Bool(value_from_stack) => {
+                if value_from_stack == value {
+                    self.jump(state, position);
+                }
+                Ok(())
+            }
+            _ => Err(Error {
+                message: format!(
+                    "Expected bool value, but got {}({:?}).",
+                    value_from_stack.type_name(),
+                    value_from_stack
+                ),
+                location: self.modules[state.module_index].functions[state.function_index]
                     .locations[state.opcode_index]
                     .clone(),
             }),
@@ -36,6 +62,7 @@ impl Program {
             .opcodes
             .get(state.opcode_index)
         {
+            state.opcode_index += 1;
             match opcode {
                 Opcode::Constant(index) => state
                     .stack
@@ -58,8 +85,10 @@ impl Program {
                     self.binary::<ArithmeticOrComparison<GreaterEqual>>(state)?
                 }
                 Opcode::LessEqual => self.binary::<ArithmeticOrComparison<LessEqual>>(state)?,
+                Opcode::JumpFalse(position) => self.jump_if(state, false, position)?,
+                Opcode::JumpTrue(position) => self.jump_if(state, true, position)?,
+                Opcode::Jump(position) => self.jump(state, position),
             }
-            state.opcode_index += 1;
         }
         Ok(state.stack.pop().unwrap())
     }

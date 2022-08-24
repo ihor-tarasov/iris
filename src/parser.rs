@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use crate::{
     common::Error,
-    expression::{Binary, Expression, Literal, LiteralType},
+    expression::{Binary, BinaryLogic, BinaryLogicType, Expression, Literal, LiteralType},
     lexer::{PeekableTokenIterator, Token, TokenInfo},
     opcode::Opcode,
 };
@@ -49,8 +49,32 @@ fn parse_primary(it: &mut PeekableTokenIterator) -> ParseResult {
             literal_type: LiteralType::Real,
             location: token_info.location,
         })),
+        Token::True => Ok(Expression::Literal(Literal {
+            literal_type: LiteralType::True,
+            location: token_info.location,
+        })),
+        Token::False => Ok(Expression::Literal(Literal {
+            literal_type: LiteralType::False,
+            location: token_info.location,
+        })),
         Token::Unknown => unknown(token_info.location),
         _ => unexpected(token_info.location),
+    }
+}
+
+fn and_mapper(token: Token) -> Option<BinaryLogicType> {
+    if token == Token::AmpersandAmpersand {
+        Some(BinaryLogicType::And)
+    } else {
+        None
+    }
+}
+
+fn or_mapper(token: Token) -> Option<BinaryLogicType> {
+    if token == Token::VerticalBarVerticalBar {
+        Some(BinaryLogicType::Or)
+    } else {
+        None
     }
 }
 
@@ -123,6 +147,29 @@ fn parse_binary(
     Ok(lhs)
 }
 
+fn parse_binary_logic(
+    it: &mut PeekableTokenIterator,
+    next: fn(&mut PeekableTokenIterator) -> ParseResult,
+    mapper: fn(Token) -> Option<BinaryLogicType>,
+) -> ParseResult {
+    let mut lhs = (next)(it)?;
+    while let Some(token_info) = it.peek() {
+        if let Some(logic_type) = (mapper)(token_info.token) {
+            let location = it.next().unwrap().location;
+            let rhs = (next)(it)?;
+            lhs = Expression::BinaryLogic(BinaryLogic {
+                lhs: Box::new(lhs),
+                rhs: Box::new(rhs),
+                logic_type,
+                location,
+            });
+        } else {
+            break;
+        }
+    }
+    Ok(lhs)
+}
+
 fn parse_bitwise(it: &mut PeekableTokenIterator) -> ParseResult {
     parse_binary(it, parse_primary, bitwise_mapper)
 }
@@ -143,8 +190,16 @@ fn parse_equality(it: &mut PeekableTokenIterator) -> ParseResult {
     parse_binary(it, parse_comparison, equality_mapper)
 }
 
+fn parse_binary_and(it: &mut PeekableTokenIterator) -> ParseResult {
+    parse_binary_logic(it, parse_equality, and_mapper)
+}
+
+fn parse_binary_or(it: &mut PeekableTokenIterator) -> ParseResult {
+    parse_binary_logic(it, parse_binary_and, or_mapper)
+}
+
 fn parse_expression(it: &mut PeekableTokenIterator) -> ParseResult {
-    parse_equality(it)
+    parse_binary_or(it)
 }
 
 pub fn parse(it: &mut PeekableTokenIterator) -> ParseResult {

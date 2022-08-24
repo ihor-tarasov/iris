@@ -1,25 +1,30 @@
-use std::iter::{Cloned, Enumerate, Peekable};
+use std::iter::Peekable;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Token {
     Integer,
     Real,
-    Plus,             // +
-    Minus,            // -
-    Asterisk,         // *
-    Slash,            // /
-    Percent,          // %
-    LessLess,         // <<
-    GreaterGreater,   // >>
-    Ampersand,        // &
-    VerticalBar,      // |
-    Circumflex,       // ^
-    Less,             // <
-    Greater,          // >
-    LessEqual,        // <=
-    GreaterEqual,     // >=
-    EqualEqual,       // ==
-    ExclamationEqual, // !=
+    Identifier,
+    True,
+    False,
+    Plus,                   // +
+    Minus,                  // -
+    Asterisk,               // *
+    Slash,                  // /
+    Percent,                // %
+    LessLess,               // <<
+    GreaterGreater,         // >>
+    Ampersand,              // &
+    VerticalBar,            // |
+    Circumflex,             // ^
+    Less,                   // <
+    Greater,                // >
+    LessEqual,              // <=
+    GreaterEqual,           // >=
+    EqualEqual,             // ==
+    ExclamationEqual,       // !=
+    AmpersandAmpersand,     // &&
+    VerticalBarVerticalBar, // ||
     Unknown,
 }
 
@@ -29,10 +34,40 @@ pub struct TokenInfo {
     pub location: std::ops::Range<usize>,
 }
 
-pub struct TokenIterator<'a>(Peekable<Enumerate<Cloned<std::slice::Iter<'a, u8>>>>);
+pub struct CodeIterator<'a> {
+    source: &'a [u8],
+    position: usize,
+}
+
+impl<'a> CodeIterator<'a> {
+    fn new(source: &'a [u8]) -> Self {
+        Self {
+            source,
+            position: 0,
+        }
+    }
+
+    fn peek(&self) -> Option<u8> {
+        self.source.get(self.position).cloned()
+    }
+
+    fn skip(&mut self) {
+        self.position += 1;
+    }
+}
+
+pub struct TokenIterator<'a>(CodeIterator<'a>);
 
 fn is_whitespace(c: u8) -> bool {
     c == b' ' || c == b'\t' || c == b'\r' || c == b'\n'
+}
+
+fn find_keyword(word: &[u8]) -> Option<Token> {
+    match word {
+        b"false" => Some(Token::False),
+        b"true" => Some(Token::True),
+        _ => None,
+    }
 }
 
 fn parse_single_token(c: u8) -> Token {
@@ -59,20 +94,22 @@ fn parse_double_token(c1: u8, c2: u8) -> Option<Token> {
         (b'!', b'=') => Some(Token::ExclamationEqual),
         (b'>', b'=') => Some(Token::GreaterEqual),
         (b'<', b'=') => Some(Token::LessEqual),
+        (b'&', b'&') => Some(Token::AmpersandAmpersand),
+        (b'|', b'|') => Some(Token::VerticalBarVerticalBar),
         _ => None,
     }
 }
 
 impl<'a> TokenIterator<'a> {
     pub fn new(source: &'a [u8]) -> Self {
-        Self(source.iter().cloned().enumerate().peekable())
+        Self(CodeIterator::new(source))
     }
 
     fn skip_whitespaces(&mut self) -> Option<()> {
         loop {
-            let (_, c) = *self.0.peek()?;
+            let c = self.0.peek()?;
             if is_whitespace(c) {
-                self.0.next().unwrap();
+                self.0.skip();
             } else {
                 break Some(());
             }
@@ -80,10 +117,9 @@ impl<'a> TokenIterator<'a> {
     }
 
     fn read_number(&mut self) -> Option<TokenInfo> {
-        let (begin, _) = *self.0.peek()?;
-        let mut end = begin;
+        let begin = self.0.position;
         let mut is_real = false;
-        while let Some(&(_, c)) = self.0.peek() {
+        while let Some(c) = self.0.peek() {
             if c.is_ascii_digit() || c == b'.' {
                 if c == b'.' {
                     if is_real {
@@ -92,37 +128,59 @@ impl<'a> TokenIterator<'a> {
                         is_real = true;
                     }
                 }
-                self.0.next().unwrap();
-                end += 1;
+                self.0.skip();
             } else {
                 break;
             }
         }
-        if begin == end {
+        if begin == self.0.position {
             None
         } else {
             Some(TokenInfo {
                 token: if is_real { Token::Real } else { Token::Integer },
-                location: begin..end,
+                location: begin..self.0.position,
+            })
+        }
+    }
+
+    fn read_identifier(&mut self) -> Option<TokenInfo> {
+        let begin = self.0.position;
+        while let Some(c) = self.0.peek() {
+            if c.is_ascii_alphanumeric() || c == b'_' {
+                self.0.skip();
+            } else {
+                break;
+            }
+        }
+        if begin == self.0.position {
+            None
+        } else {
+            let location = begin..self.0.position;
+            Some(TokenInfo {
+                token: find_keyword(&self.0.source[location.clone()]).unwrap_or(Token::Identifier),
+                location,
             })
         }
     }
 
     fn read_simple(&mut self) -> Option<TokenInfo> {
-        let (begin, c1) = self.0.next()?;
-        let (_, c2) = *self.0.peek().unwrap_or(&(0, b'\0'));
-        Some(match parse_double_token(c1, c2) {
-            Some(token) => {
-                self.0.next().unwrap();
-                TokenInfo {
+        let begin = self.0.position;
+        let c1 = self.0.peek()?;
+        self.0.skip();
+
+        if let Some(c2) = self.0.peek() {
+            if let Some(token) = parse_double_token(c1, c2) {
+                self.0.skip();
+                return Some(TokenInfo {
                     token,
                     location: begin..(begin + 2),
-                }
+                });
             }
-            None => TokenInfo {
-                token: parse_single_token(c1),
-                location: begin..(begin + 2),
-            },
+        }
+
+        Some(TokenInfo {
+            token: parse_single_token(c1),
+            location: begin..(begin + 1),
         })
     }
 }
@@ -133,6 +191,9 @@ impl<'a> Iterator for TokenIterator<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         self.skip_whitespaces()?;
         if let Some(token) = self.read_number() {
+            return Some(token);
+        }
+        if let Some(token) = self.read_identifier() {
             return Some(token);
         }
         self.read_simple()

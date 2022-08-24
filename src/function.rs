@@ -23,6 +23,16 @@ impl FunctionBuilder {
         self.locations.push(location);
     }
 
+    pub fn push_unknown(&mut self, location: std::ops::Range<usize>) -> usize {
+        self.opcodes.push(Opcode::Addict);
+        self.locations.push(location);
+        self.opcodes.len() - 1
+    }
+
+    pub fn set(&mut self, position: usize, opcode: Opcode) {
+        self.opcodes[position] = opcode;
+    }
+
     pub fn len(&self) -> usize {
         self.opcodes.len()
     }
