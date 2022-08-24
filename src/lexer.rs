@@ -1,4 +1,4 @@
-use std::iter::Peekable;
+use std::{iter::Peekable, ops::Range};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Token {
@@ -200,4 +200,28 @@ impl<'a> Iterator for TokenIterator<'a> {
     }
 }
 
-pub type PeekableTokenIterator<'a> = Peekable<TokenIterator<'a>>;
+pub struct PeekableTokenIterator<'a> {
+    it: Peekable<TokenIterator<'a>>,
+    source: &'a [u8],
+}
+
+impl<'a> PeekableTokenIterator<'a> {
+    pub fn new(source: &'a [u8]) -> Self {
+        Self {
+            it: TokenIterator::new(source).peekable(),
+            source,
+        }
+    }
+
+    pub fn peek(&mut self) -> Option<&TokenInfo> {
+        self.it.peek()
+    }
+
+    pub fn next(&mut self) -> Option<TokenInfo> {
+        self.it.next()
+    }
+
+    pub fn slice(&self, location: Range<usize>) -> &[u8] {
+        &self.source[location]
+    }
+}

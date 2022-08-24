@@ -1,10 +1,11 @@
-use std::ops::Range;
+use std::{ops::Range, str::FromStr};
 
 use crate::{
     common::Error,
-    expression::{Binary, BinaryLogic, BinaryLogicType, Expression, Literal, LiteralType},
+    expression::{Binary, BinaryLogic, BinaryLogicType, Expression, Literal},
     lexer::{PeekableTokenIterator, Token, TokenInfo},
     opcode::Opcode,
+    value::{Real, Value},
 };
 
 pub type ParseResult = Result<Expression, Error>;
@@ -37,26 +38,45 @@ fn unknown(location: Range<usize>) -> ParseResult {
     })
 }
 
+fn parse_u8_str<T: FromStr>(
+    it: &mut PeekableTokenIterator,
+    location: Range<usize>,
+) -> Result<T, Error> {
+    std::str::from_utf8(it.slice(location.clone()))
+        .unwrap()
+        .parse::<T>()
+        .map_err(|_| Error {
+            message: format!("Unable to parse literal value may be it so long."),
+            location,
+        })
+}
+
+fn create_literal(value: Value, location: Range<usize>) -> ParseResult {
+    Ok(Expression::Literal(Literal { value, location }))
+}
+
+fn parse_integer(it: &mut PeekableTokenIterator, location: Range<usize>) -> ParseResult {
+    create_literal(
+        Value::Integer(parse_u8_str(it, location.clone())?),
+        location,
+    )
+}
+
+fn parse_real(it: &mut PeekableTokenIterator, location: Range<usize>) -> ParseResult {
+    create_literal(
+        Value::Real(Real(parse_u8_str(it, location.clone())?)),
+        location,
+    )
+}
+
 fn parse_primary(it: &mut PeekableTokenIterator) -> ParseResult {
     let token_info = expect(it)?;
 
     match token_info.token {
-        Token::Integer => Ok(Expression::Literal(Literal {
-            literal_type: LiteralType::Integer,
-            location: token_info.location,
-        })),
-        Token::Real => Ok(Expression::Literal(Literal {
-            literal_type: LiteralType::Real,
-            location: token_info.location,
-        })),
-        Token::True => Ok(Expression::Literal(Literal {
-            literal_type: LiteralType::True,
-            location: token_info.location,
-        })),
-        Token::False => Ok(Expression::Literal(Literal {
-            literal_type: LiteralType::False,
-            location: token_info.location,
-        })),
+        Token::Integer => parse_integer(it, token_info.location),
+        Token::Real => parse_real(it, token_info.location),
+        Token::True => create_literal(Value::Bool(true), token_info.location),
+        Token::False => create_literal(Value::Bool(false), token_info.location),
         Token::Unknown => unknown(token_info.location),
         _ => unexpected(token_info.location),
     }

@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use crate::{
-    builder::Builder, expression::Expression, lexer::TokenIterator, program::Program, state::State,
+    builder::Builder, expression::Expression, lexer::{PeekableTokenIterator}, program::Program, state::State,
     value::Value,
 };
 
@@ -11,7 +11,7 @@ enum ReplError {
 }
 
 fn repl_parse(code: &[u8]) -> Result<Expression, ReplError> {
-    let mut token_iterator = TokenIterator::new(code).peekable();
+    let mut token_iterator = PeekableTokenIterator::new(code);
     crate::parser::parse(&mut token_iterator).map_err(|error| {
         if error.location.eq(0..0) {
             ReplError::UnexpectedEnd
