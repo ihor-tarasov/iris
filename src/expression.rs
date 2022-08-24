@@ -20,27 +20,27 @@ pub struct Literal {
     pub location: std::ops::Range<usize>,
 }
 
-fn parse_u8_str<T: FromStr>(source: &[u8]) -> T {
-    match std::str::from_utf8(source).unwrap().parse::<T>() {
-        Ok(value) => value,
-        Err(_) => panic!(),
-    }
+fn parse_u8_str<T: FromStr>(source: &[u8]) -> Result<T, String> {
+    std::str::from_utf8(source)
+        .unwrap()
+        .parse::<T>()
+        .map_err(|_| format!("Unable to parse literal value may be it so long."))
 }
 
-fn parse_integer(source: &[u8]) -> Value {
-    Value::Integer(parse_u8_str(source))
+fn parse_integer(source: &[u8]) -> Result<Value, String> {
+    Ok(Value::Integer(parse_u8_str(source)?))
 }
 
-fn parse_real(source: &[u8]) -> Value {
-    Value::Real(Real(parse_u8_str(source)))
+fn parse_real(source: &[u8]) -> Result<Value, String> {
+    Ok(Value::Real(Real(parse_u8_str(source)?)))
 }
 
-fn parse_literal(literal_type: LiteralType, source: &[u8]) -> Value {
+fn parse_literal(literal_type: LiteralType, source: &[u8]) -> Result<Value, String> {
     match literal_type {
         LiteralType::Integer => parse_integer(source),
         LiteralType::Real => parse_real(source),
-        LiteralType::True => Value::Bool(true),
-        LiteralType::False => Value::Bool(false),
+        LiteralType::True => Ok(Value::Bool(true)),
+        LiteralType::False => Ok(Value::Bool(false)),
     }
 }
 
@@ -54,7 +54,10 @@ fn build_constant(value: Value, location: Range<usize>, builder: &mut Builder) {
 impl Literal {
     pub fn build(&self, builder: &mut Builder) -> Result<(), Error> {
         let source = &builder.module_builder.source[self.location.clone()];
-        let value = parse_literal(self.literal_type, source);
+        let value = parse_literal(self.literal_type, source).map_err(|message| Error {
+            message,
+            location: self.location.clone(),
+        })?;
         build_constant(value, self.location.clone(), builder);
         Ok(())
     }
