@@ -1,3 +1,4 @@
+pub mod builder;
 pub mod common;
 pub mod expression;
 pub mod function;
@@ -6,5 +7,6 @@ pub mod module;
 pub mod opcode;
 pub mod parser;
 pub mod program;
+pub mod repl;
 pub mod state;
 pub mod value;

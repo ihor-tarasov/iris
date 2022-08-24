@@ -22,8 +22,8 @@ fn is_whitespace(c: u8) -> bool {
 }
 
 impl<'a> TokenIterator<'a> {
-    pub fn new(source: &'a str) -> Self {
-        Self(source.as_bytes().iter().cloned().enumerate().peekable())
+    pub fn new(source: &'a [u8]) -> Self {
+        Self(source.iter().cloned().enumerate().peekable())
     }
 
     fn skip_whitespaces(&mut self) -> Option<()> {

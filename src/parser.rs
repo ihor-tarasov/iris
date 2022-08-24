@@ -9,14 +9,10 @@ use crate::{
 
 pub type ParseResult = Result<Expression, Error>;
 
-fn end_of_file_location() -> Range<usize> {
-    0..0
-}
-
 fn unexpected_end() -> Result<TokenInfo, Error> {
     Err(Error {
         message: format!("Unexpected end of code."),
-        location: end_of_file_location(),
+        location: 0..0,
     })
 }
 
@@ -82,12 +78,12 @@ fn parse_binary(
         if let Some(opcode) = (mapper)(token_info.token) {
             let location = it.next().unwrap().location;
             let rhs = (next)(it)?;
-                lhs = Expression::Binary(Binary {
-                    lhs: Box::new(lhs),
-                    rhs: Box::new(rhs),
-                    opcode,
-                    location,
-                });
+            lhs = Expression::Binary(Binary {
+                lhs: Box::new(lhs),
+                rhs: Box::new(rhs),
+                opcode,
+                location,
+            });
         } else {
             break;
         }
