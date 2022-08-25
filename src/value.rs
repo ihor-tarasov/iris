@@ -1,6 +1,6 @@
 use std::{
     hash::{Hash, Hasher},
-    marker::PhantomData,
+    marker::PhantomData, fmt::{Display, Formatter},
 };
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -8,6 +8,16 @@ pub enum Value {
     Bool(bool),
     Integer(i64),
     Real(f64),
+}
+
+impl Display for Value {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match *self {
+            Value::Bool(value) => write!(f, "{}", value),
+            Value::Integer(value) => write!(f, "{}", value),
+            Value::Real(value) => write!(f, "{}", value),
+        }
+    }
 }
 
 impl Eq for Value {}
@@ -97,12 +107,9 @@ impl IntOperator for Shr {
 }
 
 pub struct Addict;
-
-impl IntOperator for Addict {
-    fn eval(lhs: i64, rhs: i64) -> OperatorResult {
-        Ok(Value::Integer(lhs.wrapping_add(rhs)))
-    }
-}
+pub struct Subtract;
+pub struct Multiply;
+pub struct Divide;
 
 generate_implement!(RealOperator, Addict, f64, Real, +);
 generate_implement!(RealOperator, Subtract, f64, Real, -);
@@ -110,31 +117,32 @@ generate_implement!(RealOperator, Multiply, f64, Real, *);
 generate_implement!(RealOperator, Divide, f64, Real, /);
 generate_implement!(RealOperator, Modulo, f64, Real, %);
 
-pub struct Subtract;
-
-impl IntOperator for Subtract {
-    fn eval(lhs: i64, rhs: i64) -> OperatorResult {
-        Ok(Value::Integer(lhs.wrapping_sub(rhs)))
-    }
+macro_rules! generate_implement_safe_int {
+    ($struct_name:ident, $function_name:ident) => {
+        impl IntOperator for $struct_name {
+            fn eval(lhs: i64, rhs: i64) -> OperatorResult {
+                Ok(Value::Integer(lhs.$function_name(rhs)))
+            }
+        }
+    };
 }
 
-pub struct Multiply;
+generate_implement_safe_int!(Addict, wrapping_add);
+generate_implement_safe_int!(Subtract, wrapping_sub);
+generate_implement_safe_int!(Multiply, wrapping_mul);
 
-impl IntOperator for Multiply {
-    fn eval(lhs: i64, rhs: i64) -> OperatorResult {
-        Ok(Value::Integer(lhs.wrapping_mul(rhs)))
+fn check_for_zero(value: i64) -> Result<(), String> {
+    if value == 0 {
+        Err(format!("Dividing by zero."))
+    } else {
+        Ok(())
     }
 }
-
-pub struct Divide;
 
 impl IntOperator for Divide {
     fn eval(lhs: i64, rhs: i64) -> OperatorResult {
-        if rhs == 0 {
-            Err(format!("Dividing by zero."))
-        } else {
-            Ok(Value::Integer(lhs.wrapping_div(rhs)))
-        }
+        check_for_zero(rhs)?;
+        Ok(Value::Integer(lhs.wrapping_div(rhs)))
     }
 }
 
@@ -142,11 +150,8 @@ pub struct Modulo;
 
 impl IntOperator for Modulo {
     fn eval(lhs: i64, rhs: i64) -> OperatorResult {
-        if rhs == 0 {
-            Err(format!("Dividing by zero."))
-        } else {
-            Ok(Value::Integer(lhs % rhs))
-        }
+        check_for_zero(rhs)?;
+        Ok(Value::Integer(lhs % rhs))
     }
 }
 
