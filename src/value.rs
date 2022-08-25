@@ -1,6 +1,7 @@
 use std::{
+    fmt::{Display, Formatter},
     hash::{Hash, Hasher},
-    marker::PhantomData, fmt::{Display, Formatter},
+    marker::PhantomData,
 };
 
 #[derive(Debug, PartialEq, Clone, Copy)]
