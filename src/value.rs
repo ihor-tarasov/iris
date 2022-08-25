@@ -4,22 +4,23 @@ use std::{
     marker::PhantomData,
 };
 
-#[derive(Clone, Copy, PartialEq)]
-pub struct Real(pub f64);
-
-impl Eq for Real {}
-
-impl Hash for Real {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.0.to_bits().hash(state)
-    }
-}
-
-#[derive(PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy)]
 pub enum Value {
     Bool(bool),
     Integer(i64),
-    Real(Real),
+    Real(f64),
+}
+
+impl Eq for Value {}
+
+impl Hash for Value {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match *self {
+            Value::Bool(value) => value.hash(state),
+            Value::Integer(value) => value.hash(state),
+            Value::Real(value) => value.to_bits().hash(state),
+        }
+    }
 }
 
 impl fmt::Debug for Value {
@@ -27,7 +28,7 @@ impl fmt::Debug for Value {
         match *self {
             Value::Bool(value) => write!(f, "{}", value),
             Value::Integer(value) => write!(f, "{}", value),
-            Value::Real(value) => write!(f, "{}", value.0),
+            Value::Real(value) => write!(f, "{}", value),
         }
     }
 }
@@ -124,7 +125,7 @@ impl IntOperator for Addict {
 
 impl RealOperator for Addict {
     fn eval(lhs: f64, rhs: f64) -> OperatorResult {
-        Ok(Value::Real(Real(lhs + rhs)))
+        Ok(Value::Real(lhs + rhs))
     }
 }
 
@@ -138,7 +139,7 @@ impl IntOperator for Subtract {
 
 impl RealOperator for Subtract {
     fn eval(lhs: f64, rhs: f64) -> OperatorResult {
-        Ok(Value::Real(Real(lhs - rhs)))
+        Ok(Value::Real(lhs - rhs))
     }
 }
 
@@ -152,7 +153,7 @@ impl IntOperator for Multiply {
 
 impl RealOperator for Multiply {
     fn eval(lhs: f64, rhs: f64) -> OperatorResult {
-        Ok(Value::Real(Real(lhs * rhs)))
+        Ok(Value::Real(lhs * rhs))
     }
 }
 
@@ -170,7 +171,7 @@ impl IntOperator for Divide {
 
 impl RealOperator for Divide {
     fn eval(lhs: f64, rhs: f64) -> OperatorResult {
-        Ok(Value::Real(Real(lhs / rhs)))
+        Ok(Value::Real(lhs / rhs))
     }
 }
 
@@ -188,7 +189,7 @@ impl IntOperator for Modulo {
 
 impl RealOperator for Modulo {
     fn eval(lhs: f64, rhs: f64) -> OperatorResult {
-        Ok(Value::Real(Real(lhs % rhs)))
+        Ok(Value::Real(lhs % rhs))
     }
 }
 
@@ -258,9 +259,9 @@ impl<T: IntOperator + RealOperator> BinaryOperator for ArithmeticOrComparison<T>
     fn eval(lhs: Value, rhs: Value) -> OperatorResult {
         match (lhs, rhs) {
             (Value::Integer(lhs), Value::Integer(rhs)) => <T as IntOperator>::eval(lhs, rhs),
-            (Value::Integer(lhs), Value::Real(rhs)) => <T as RealOperator>::eval(lhs as f64, rhs.0),
-            (Value::Real(lhs), Value::Integer(rhs)) => <T as RealOperator>::eval(lhs.0, rhs as f64),
-            (Value::Real(lhs), Value::Real(rhs)) => <T as RealOperator>::eval(lhs.0, rhs.0),
+            (Value::Integer(lhs), Value::Real(rhs)) => <T as RealOperator>::eval(lhs as f64, rhs),
+            (Value::Real(lhs), Value::Integer(rhs)) => <T as RealOperator>::eval(lhs, rhs as f64),
+            (Value::Real(lhs), Value::Real(rhs)) => <T as RealOperator>::eval(lhs, rhs),
             _ => unable_to_use(lhs, rhs),
         }
     }
@@ -288,9 +289,9 @@ impl<T: BoolOperator + IntOperator + RealOperator> BinaryOperator for Equality<T
         match (lhs, rhs) {
             (Value::Bool(lhs), Value::Bool(rhs)) => <T as BoolOperator>::eval(lhs, rhs),
             (Value::Integer(lhs), Value::Integer(rhs)) => <T as IntOperator>::eval(lhs, rhs),
-            (Value::Integer(lhs), Value::Real(rhs)) => <T as RealOperator>::eval(lhs as f64, rhs.0),
-            (Value::Real(lhs), Value::Integer(rhs)) => <T as RealOperator>::eval(lhs.0, rhs as f64),
-            (Value::Real(lhs), Value::Real(rhs)) => <T as RealOperator>::eval(lhs.0, rhs.0),
+            (Value::Integer(lhs), Value::Real(rhs)) => <T as RealOperator>::eval(lhs as f64, rhs),
+            (Value::Real(lhs), Value::Integer(rhs)) => <T as RealOperator>::eval(lhs, rhs as f64),
+            (Value::Real(lhs), Value::Real(rhs)) => <T as RealOperator>::eval(lhs, rhs),
             _ => unable_to_use(lhs, rhs),
         }
     }

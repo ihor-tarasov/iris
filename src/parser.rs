@@ -4,7 +4,8 @@ use crate::{
     common::Error,
     expression::{Binary, BinaryLogic, BinaryLogicType, Expression, Literal},
     lexer::{PeekableTokenIterator, Token, TokenInfo},
-    value::{Real, Value}, program::Opcode,
+    program::Opcode,
+    value::Value,
 };
 
 pub type ParseResult = Result<Expression, Error>;
@@ -63,7 +64,7 @@ fn parse_integer(it: &mut PeekableTokenIterator, location: Range<usize>) -> Pars
 
 fn parse_real(it: &mut PeekableTokenIterator, location: Range<usize>) -> ParseResult {
     create_literal(
-        Value::Real(Real(parse_u8_str(it, location.clone())?)),
+        Value::Real(parse_u8_str(it, location.clone())?),
         location,
     )
 }
