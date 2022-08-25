@@ -52,15 +52,12 @@ pub trait IntOperator {
     fn eval(lhs: i64, rhs: i64) -> OperatorResult;
 }
 
-pub trait IntRealOperator {
-    fn eval_int(lhs: i64, rhs: i64) -> OperatorResult;
-    fn eval_real(lhs: f64, rhs: f64) -> OperatorResult;
+pub trait RealOperator {
+    fn eval(lhs: f64, rhs: f64) -> OperatorResult;
 }
 
-pub trait BoolIntRealOperator {
-    fn eval_bool(lhs: bool, rhs: bool) -> OperatorResult;
-    fn eval_int(lhs: i64, rhs: i64) -> OperatorResult;
-    fn eval_real(lhs: f64, rhs: f64) -> OperatorResult;
+pub trait BoolOperator {
+    fn eval(lhs: bool, rhs: bool) -> OperatorResult;
 }
 
 macro_rules! generate_bitwise {
@@ -119,68 +116,78 @@ impl IntOperator for Shr {
 
 pub struct Addict;
 
-impl IntRealOperator for Addict {
-    fn eval_int(lhs: i64, rhs: i64) -> OperatorResult {
+impl IntOperator for Addict {
+    fn eval(lhs: i64, rhs: i64) -> OperatorResult {
         Ok(Value::Integer(lhs.wrapping_add(rhs)))
     }
+}
 
-    fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
+impl RealOperator for Addict {
+    fn eval(lhs: f64, rhs: f64) -> OperatorResult {
         Ok(Value::Real(Real(lhs + rhs)))
     }
 }
 
 pub struct Subtract;
 
-impl IntRealOperator for Subtract {
-    fn eval_int(lhs: i64, rhs: i64) -> OperatorResult {
+impl IntOperator for Subtract {
+    fn eval(lhs: i64, rhs: i64) -> OperatorResult {
         Ok(Value::Integer(lhs.wrapping_sub(rhs)))
     }
+}
 
-    fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
+impl RealOperator for Subtract {
+    fn eval(lhs: f64, rhs: f64) -> OperatorResult {
         Ok(Value::Real(Real(lhs - rhs)))
     }
 }
 
 pub struct Multiply;
 
-impl IntRealOperator for Multiply {
-    fn eval_int(lhs: i64, rhs: i64) -> OperatorResult {
+impl IntOperator for Multiply {
+    fn eval(lhs: i64, rhs: i64) -> OperatorResult {
         Ok(Value::Integer(lhs.wrapping_mul(rhs)))
     }
+}
 
-    fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
+impl RealOperator for Multiply {
+    fn eval(lhs: f64, rhs: f64) -> OperatorResult {
         Ok(Value::Real(Real(lhs * rhs)))
     }
 }
 
 pub struct Divide;
 
-impl IntRealOperator for Divide {
-    fn eval_int(lhs: i64, rhs: i64) -> OperatorResult {
+impl IntOperator for Divide {
+    fn eval(lhs: i64, rhs: i64) -> OperatorResult {
         if rhs == 0 {
             Err(format!("Dividing by zero."))
         } else {
             Ok(Value::Integer(lhs.wrapping_div(rhs)))
         }
     }
+}
 
-    fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
+impl RealOperator for Divide {
+    fn eval(lhs: f64, rhs: f64) -> OperatorResult {
         Ok(Value::Real(Real(lhs / rhs)))
     }
 }
 
 pub struct Modulo;
 
-impl IntRealOperator for Modulo {
-    fn eval_int(lhs: i64, rhs: i64) -> OperatorResult {
+impl IntOperator for Modulo {
+    fn eval(lhs: i64, rhs: i64) -> OperatorResult {
         if rhs == 0 {
             Err(format!("Dividing by zero."))
         } else {
             Ok(Value::Integer(lhs % rhs))
         }
     }
+}
 
-    fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
+impl RealOperator for Modulo {
+    fn eval(lhs: f64, rhs: f64) -> OperatorResult {
         Ok(Value::Real(Real(lhs % rhs)))
     }
 }
@@ -189,12 +196,14 @@ macro_rules! generate_comparison {
     ($name:ident, $op:tt) => {
         pub struct $name;
 
-        impl IntRealOperator for $name {
-            fn eval_int(lhs: i64, rhs: i64) -> OperatorResult {
+        impl IntOperator for $name {
+            fn eval(lhs: i64, rhs: i64) -> OperatorResult {
                 Ok(Value::Bool(lhs $op rhs))
             }
+        }
 
-            fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
+        impl RealOperator for $name {
+            fn eval(lhs: f64, rhs: f64) -> OperatorResult {
                 Ok(Value::Bool(lhs $op rhs))
             }
         }
@@ -210,16 +219,20 @@ macro_rules! generate_equality {
     ($name:ident, $op:tt) => {
         pub struct $name;
 
-        impl BoolIntRealOperator for $name {
-            fn eval_bool(lhs: bool, rhs: bool) -> OperatorResult {
+        impl BoolOperator for $name {
+            fn eval(lhs: bool, rhs: bool) -> OperatorResult {
                 Ok(Value::Bool(lhs $op rhs))
             }
+        }
 
-            fn eval_int(lhs: i64, rhs: i64) -> OperatorResult {
+        impl IntOperator for $name {
+            fn eval(lhs: i64, rhs: i64) -> OperatorResult {
                 Ok(Value::Bool(lhs $op rhs))
             }
+        }
 
-            fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
+        impl RealOperator for $name {
+            fn eval(lhs: f64, rhs: f64) -> OperatorResult {
                 Ok(Value::Bool(lhs $op rhs))
             }
         }
@@ -237,17 +250,17 @@ fn unable_to_use(lhs: Value, rhs: Value) -> OperatorResult {
     ))
 }
 
-pub struct ArithmeticOrComparison<T: IntRealOperator> {
+pub struct ArithmeticOrComparison<T: IntOperator + RealOperator> {
     phantom: PhantomData<T>,
 }
 
-impl<T: IntRealOperator> BinaryOperator for ArithmeticOrComparison<T> {
+impl<T: IntOperator + RealOperator> BinaryOperator for ArithmeticOrComparison<T> {
     fn eval(lhs: Value, rhs: Value) -> OperatorResult {
         match (lhs, rhs) {
-            (Value::Integer(lhs), Value::Integer(rhs)) => T::eval_int(lhs, rhs),
-            (Value::Integer(lhs), Value::Real(rhs)) => T::eval_real(lhs as f64, rhs.0),
-            (Value::Real(lhs), Value::Integer(rhs)) => T::eval_real(lhs.0, rhs as f64),
-            (Value::Real(lhs), Value::Real(rhs)) => T::eval_real(lhs.0, rhs.0),
+            (Value::Integer(lhs), Value::Integer(rhs)) => <T as IntOperator>::eval(lhs, rhs),
+            (Value::Integer(lhs), Value::Real(rhs)) => <T as RealOperator>::eval(lhs as f64, rhs.0),
+            (Value::Real(lhs), Value::Integer(rhs)) => <T as RealOperator>::eval(lhs.0, rhs as f64),
+            (Value::Real(lhs), Value::Real(rhs)) => <T as RealOperator>::eval(lhs.0, rhs.0),
             _ => unable_to_use(lhs, rhs),
         }
     }
@@ -266,18 +279,18 @@ impl<T: IntOperator> BinaryOperator for Bitwise<T> {
     }
 }
 
-pub struct Equality<T: BoolIntRealOperator> {
+pub struct Equality<T: BoolOperator + IntOperator + RealOperator> {
     phantom: PhantomData<T>,
 }
 
-impl<T: BoolIntRealOperator> BinaryOperator for Equality<T> {
+impl<T: BoolOperator + IntOperator + RealOperator> BinaryOperator for Equality<T> {
     fn eval(lhs: Value, rhs: Value) -> OperatorResult {
         match (lhs, rhs) {
-            (Value::Bool(lhs), Value::Bool(rhs)) => T::eval_bool(lhs, rhs),
-            (Value::Integer(lhs), Value::Integer(rhs)) => T::eval_int(lhs, rhs),
-            (Value::Integer(lhs), Value::Real(rhs)) => T::eval_real(lhs as f64, rhs.0),
-            (Value::Real(lhs), Value::Integer(rhs)) => T::eval_real(lhs.0, rhs as f64),
-            (Value::Real(lhs), Value::Real(rhs)) => T::eval_real(lhs.0, rhs.0),
+            (Value::Bool(lhs), Value::Bool(rhs)) => <T as BoolOperator>::eval(lhs, rhs),
+            (Value::Integer(lhs), Value::Integer(rhs)) => <T as IntOperator>::eval(lhs, rhs),
+            (Value::Integer(lhs), Value::Real(rhs)) => <T as RealOperator>::eval(lhs as f64, rhs.0),
+            (Value::Real(lhs), Value::Integer(rhs)) => <T as RealOperator>::eval(lhs.0, rhs as f64),
+            (Value::Real(lhs), Value::Real(rhs)) => <T as RealOperator>::eval(lhs.0, rhs.0),
             _ => unable_to_use(lhs, rhs),
         }
     }
