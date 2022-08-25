@@ -59,23 +59,24 @@ pub struct BinaryLogic {
 a && b
 
     {a}
-    jump_false set_false
+    JumpFalse set_false
     {b}
-    jump expr_end
+    Jump expr_end
 set_false:
-    push_false
+    Constant false
 expr_end:
 
 a || b
 
     {a}
-    jump_true set_true
+    JumpTrue set_true
     {b}
-    jump expr_end
+    Jump expr_end
 set_true:
-    push_true
+    Constant true
 expr_end:
 */
+
 impl BinaryLogic {
     pub fn build(&self, builder: &mut Builder) -> Result<(), Error> {
         builder::build(&self.lhs, builder)?;
