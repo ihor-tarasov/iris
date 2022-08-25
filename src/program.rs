@@ -68,11 +68,7 @@ impl Program {
                 Ok(())
             }
             _ => Err(Error {
-                message: format!(
-                    "Expected bool value, but got {}({:?}).",
-                    value_from_stack.type_name(),
-                    value_from_stack
-                ),
+                message: format!("Expected bool value, but got {:?}.", value_from_stack,),
                 location: self.modules[state.module_index].functions[state.function_index]
                     .locations[state.opcode_index]
                     .clone(),

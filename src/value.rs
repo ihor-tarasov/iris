@@ -1,10 +1,9 @@
 use std::{
-    fmt,
     hash::{Hash, Hasher},
     marker::PhantomData,
 };
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Value {
     Bool(bool),
     Integer(i64),
@@ -19,26 +18,6 @@ impl Hash for Value {
             Value::Bool(value) => value.hash(state),
             Value::Integer(value) => value.hash(state),
             Value::Real(value) => value.to_bits().hash(state),
-        }
-    }
-}
-
-impl fmt::Debug for Value {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match *self {
-            Value::Bool(value) => write!(f, "{}", value),
-            Value::Integer(value) => write!(f, "{}", value),
-            Value::Real(value) => write!(f, "{}", value),
-        }
-    }
-}
-
-impl Value {
-    pub fn type_name(self) -> &'static str {
-        match self {
-            Value::Bool(_) => "bool",
-            Value::Integer(_) => "int",
-            Value::Real(_) => "real",
         }
     }
 }
@@ -61,21 +40,23 @@ pub trait BoolOperator {
     fn eval(lhs: bool, rhs: bool) -> OperatorResult;
 }
 
-macro_rules! generate_bitwise {
-    ($name:ident, $op:tt) => {
-        pub struct $name;
-
-        impl IntOperator for $name {
-            fn eval(lhs: i64, rhs: i64) -> OperatorResult {
-                Ok(Value::Integer(lhs $op rhs))
+macro_rules! generate_implement {
+    ($trait_name:ident, $struct_name:ident, $value_type:ident, $result_type:ident, $op:tt) => {
+        impl $trait_name for $struct_name {
+            fn eval(lhs: $value_type, rhs: $value_type) -> OperatorResult {
+                Ok(Value::$result_type(lhs $op rhs))
             }
         }
     };
 }
 
-generate_bitwise!(And, &);
-generate_bitwise!(Or, |);
-generate_bitwise!(Xor, ^);
+pub struct And;
+pub struct Or;
+pub struct Xor;
+
+generate_implement!(IntOperator, And, i64, Integer, &);
+generate_implement!(IntOperator, Or, i64, Integer, |);
+generate_implement!(IntOperator, Xor, i64, Integer, ^);
 
 fn correct_rhs_for_shirt(rhs: i64) -> Result<u32, String> {
     if rhs < 0 {
@@ -123,11 +104,11 @@ impl IntOperator for Addict {
     }
 }
 
-impl RealOperator for Addict {
-    fn eval(lhs: f64, rhs: f64) -> OperatorResult {
-        Ok(Value::Real(lhs + rhs))
-    }
-}
+generate_implement!(RealOperator, Addict, f64, Real, +);
+generate_implement!(RealOperator, Subtract, f64, Real, -);
+generate_implement!(RealOperator, Multiply, f64, Real, *);
+generate_implement!(RealOperator, Divide, f64, Real, /);
+generate_implement!(RealOperator, Modulo, f64, Real, %);
 
 pub struct Subtract;
 
@@ -137,23 +118,11 @@ impl IntOperator for Subtract {
     }
 }
 
-impl RealOperator for Subtract {
-    fn eval(lhs: f64, rhs: f64) -> OperatorResult {
-        Ok(Value::Real(lhs - rhs))
-    }
-}
-
 pub struct Multiply;
 
 impl IntOperator for Multiply {
     fn eval(lhs: i64, rhs: i64) -> OperatorResult {
         Ok(Value::Integer(lhs.wrapping_mul(rhs)))
-    }
-}
-
-impl RealOperator for Multiply {
-    fn eval(lhs: f64, rhs: f64) -> OperatorResult {
-        Ok(Value::Real(lhs * rhs))
     }
 }
 
@@ -169,12 +138,6 @@ impl IntOperator for Divide {
     }
 }
 
-impl RealOperator for Divide {
-    fn eval(lhs: f64, rhs: f64) -> OperatorResult {
-        Ok(Value::Real(lhs / rhs))
-    }
-}
-
 pub struct Modulo;
 
 impl IntOperator for Modulo {
@@ -187,67 +150,34 @@ impl IntOperator for Modulo {
     }
 }
 
-impl RealOperator for Modulo {
-    fn eval(lhs: f64, rhs: f64) -> OperatorResult {
-        Ok(Value::Real(lhs % rhs))
-    }
-}
+pub struct Less;
+pub struct LessEqual;
+pub struct Greater;
+pub struct GreaterEqual;
 
-macro_rules! generate_comparison {
-    ($name:ident, $op:tt) => {
-        pub struct $name;
+generate_implement!(IntOperator, Less, i64, Bool, <);
+generate_implement!(RealOperator, Less, f64, Bool, <);
+generate_implement!(IntOperator, LessEqual, i64, Bool, <=);
+generate_implement!(RealOperator, LessEqual, f64, Bool, <=);
+generate_implement!(IntOperator, Greater, i64, Bool, >);
+generate_implement!(RealOperator, Greater, f64, Bool, >);
+generate_implement!(IntOperator, GreaterEqual, i64, Bool, >=);
+generate_implement!(RealOperator, GreaterEqual, f64, Bool, >=);
 
-        impl IntOperator for $name {
-            fn eval(lhs: i64, rhs: i64) -> OperatorResult {
-                Ok(Value::Bool(lhs $op rhs))
-            }
-        }
+pub struct Equal;
+pub struct NotEqual;
 
-        impl RealOperator for $name {
-            fn eval(lhs: f64, rhs: f64) -> OperatorResult {
-                Ok(Value::Bool(lhs $op rhs))
-            }
-        }
-    };
-}
-
-generate_comparison!(Less, <);
-generate_comparison!(Greater, >);
-generate_comparison!(LessEqual, <=);
-generate_comparison!(GreaterEqual, >=);
-
-macro_rules! generate_equality {
-    ($name:ident, $op:tt) => {
-        pub struct $name;
-
-        impl BoolOperator for $name {
-            fn eval(lhs: bool, rhs: bool) -> OperatorResult {
-                Ok(Value::Bool(lhs $op rhs))
-            }
-        }
-
-        impl IntOperator for $name {
-            fn eval(lhs: i64, rhs: i64) -> OperatorResult {
-                Ok(Value::Bool(lhs $op rhs))
-            }
-        }
-
-        impl RealOperator for $name {
-            fn eval(lhs: f64, rhs: f64) -> OperatorResult {
-                Ok(Value::Bool(lhs $op rhs))
-            }
-        }
-    };
-}
-
-generate_equality!(Equal, ==);
-generate_equality!(NotEqual, !=);
+generate_implement!(BoolOperator, Equal, bool, Bool, ==);
+generate_implement!(IntOperator, Equal, i64, Bool, ==);
+generate_implement!(RealOperator, Equal, f64, Bool, ==);
+generate_implement!(BoolOperator, NotEqual, bool, Bool, !=);
+generate_implement!(IntOperator, NotEqual, i64, Bool, !=);
+generate_implement!(RealOperator, NotEqual, f64, Bool, !=);
 
 fn unable_to_use(lhs: Value, rhs: Value) -> OperatorResult {
     Err(format!(
-        "Unable to use such types ({} and {}) in bitwise operation.",
-        lhs.type_name(),
-        rhs.type_name(),
+        "Can't use {:?} and {:?} in this binary operation.",
+        lhs, rhs,
     ))
 }
 
