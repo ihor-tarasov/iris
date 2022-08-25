@@ -54,6 +54,7 @@ fn repl_run_one_more_line(code: &mut String) -> Result<(), ReplError> {
     let expression = repl_parse(code.as_bytes())?;
 
     let program = repl_build(code.as_bytes(), expression)?;
+    //println!("{:#?}", program);
     println!("{}", repl_run(program)?);
     Ok(())
 }

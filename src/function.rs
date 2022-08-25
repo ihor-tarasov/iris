@@ -1,5 +1,6 @@
 use crate::program::Opcode;
 
+#[derive(Debug)]
 pub struct Function {
     pub opcodes: Box<[Opcode]>,
     pub locations: Box<[std::ops::Range<usize>]>,

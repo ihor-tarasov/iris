@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::{function::Function, value::Value};
 
+#[derive(Debug)]
 pub struct Module {
     pub functions: Box<[Function]>,
     pub constants: Box<[Value]>,

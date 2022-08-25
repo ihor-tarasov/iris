@@ -3,7 +3,7 @@ use crate::module::*;
 use crate::state::*;
 use crate::value::*;
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum Opcode {
     Constant(usize),
     Addict,
@@ -27,6 +27,7 @@ pub enum Opcode {
     Jump(usize),
 }
 
+#[derive(Debug)]
 pub struct Program {
     modules: Vec<Module>,
 }
