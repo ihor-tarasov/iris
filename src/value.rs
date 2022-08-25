@@ -63,29 +63,21 @@ pub trait BoolIntRealOperator {
     fn eval_real(lhs: f64, rhs: f64) -> OperatorResult;
 }
 
-pub struct And;
+macro_rules! generate_bitwise {
+    ($name:ident, $op:tt) => {
+        pub struct $name;
 
-impl IntOperator for And {
-    fn eval(lhs: i64, rhs: i64) -> OperatorResult {
-        Ok(Value::Integer(lhs & rhs))
-    }
+        impl IntOperator for $name {
+            fn eval(lhs: i64, rhs: i64) -> OperatorResult {
+                Ok(Value::Integer(lhs $op rhs))
+            }
+        }
+    };
 }
 
-pub struct Or;
-
-impl IntOperator for Or {
-    fn eval(lhs: i64, rhs: i64) -> OperatorResult {
-        Ok(Value::Integer(lhs | rhs))
-    }
-}
-
-pub struct Xor;
-
-impl IntOperator for Xor {
-    fn eval(lhs: i64, rhs: i64) -> OperatorResult {
-        Ok(Value::Integer(lhs ^ rhs))
-    }
-}
+generate_bitwise!(And, &);
+generate_bitwise!(Or, |);
+generate_bitwise!(Xor, ^);
 
 fn correct_rhs_for_shirt(rhs: i64) -> Result<u32, String> {
     if rhs < 0 {
@@ -193,85 +185,49 @@ impl IntRealOperator for Modulo {
     }
 }
 
-pub struct Less;
+macro_rules! generate_comparison {
+    ($name:ident, $op:tt) => {
+        pub struct $name;
 
-impl IntRealOperator for Less {
-    fn eval_int(lhs: i64, rhs: i64) -> OperatorResult {
-        Ok(Value::Bool(lhs < rhs))
-    }
+        impl IntRealOperator for $name {
+            fn eval_int(lhs: i64, rhs: i64) -> OperatorResult {
+                Ok(Value::Bool(lhs $op rhs))
+            }
 
-    fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
-        Ok(Value::Bool(lhs < rhs))
-    }
+            fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
+                Ok(Value::Bool(lhs $op rhs))
+            }
+        }
+    };
 }
 
-pub struct Greater;
+generate_comparison!(Less, <);
+generate_comparison!(Greater, >);
+generate_comparison!(LessEqual, <=);
+generate_comparison!(GreaterEqual, >=);
 
-impl IntRealOperator for Greater {
-    fn eval_int(lhs: i64, rhs: i64) -> OperatorResult {
-        Ok(Value::Bool(lhs > rhs))
-    }
+macro_rules! generate_equality {
+    ($name:ident, $op:tt) => {
+        pub struct $name;
 
-    fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
-        Ok(Value::Bool(lhs > rhs))
-    }
+        impl BoolIntRealOperator for $name {
+            fn eval_bool(lhs: bool, rhs: bool) -> OperatorResult {
+                Ok(Value::Bool(lhs $op rhs))
+            }
+
+            fn eval_int(lhs: i64, rhs: i64) -> OperatorResult {
+                Ok(Value::Bool(lhs $op rhs))
+            }
+
+            fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
+                Ok(Value::Bool(lhs $op rhs))
+            }
+        }
+    };
 }
 
-pub struct LessEqual;
-
-impl IntRealOperator for LessEqual {
-    fn eval_int(lhs: i64, rhs: i64) -> OperatorResult {
-        Ok(Value::Bool(lhs <= rhs))
-    }
-
-    fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
-        Ok(Value::Bool(lhs <= rhs))
-    }
-}
-
-pub struct GreaterEqual;
-
-impl IntRealOperator for GreaterEqual {
-    fn eval_int(lhs: i64, rhs: i64) -> OperatorResult {
-        Ok(Value::Bool(lhs >= rhs))
-    }
-
-    fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
-        Ok(Value::Bool(lhs >= rhs))
-    }
-}
-
-pub struct Equal;
-
-impl BoolIntRealOperator for Equal {
-    fn eval_bool(lhs: bool, rhs: bool) -> OperatorResult {
-        Ok(Value::Bool(lhs == rhs))
-    }
-
-    fn eval_int(lhs: i64, rhs: i64) -> OperatorResult {
-        Ok(Value::Bool(lhs == rhs))
-    }
-
-    fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
-        Ok(Value::Bool(lhs == rhs))
-    }
-}
-
-pub struct NotEqual;
-
-impl BoolIntRealOperator for NotEqual {
-    fn eval_bool(lhs: bool, rhs: bool) -> OperatorResult {
-        Ok(Value::Bool(lhs != rhs))
-    }
-
-    fn eval_int(lhs: i64, rhs: i64) -> OperatorResult {
-        Ok(Value::Bool(lhs != rhs))
-    }
-
-    fn eval_real(lhs: f64, rhs: f64) -> OperatorResult {
-        Ok(Value::Bool(lhs != rhs))
-    }
-}
+generate_equality!(Equal, ==);
+generate_equality!(NotEqual, !=);
 
 fn unable_to_use(lhs: Value, rhs: Value) -> OperatorResult {
     Err(format!(
