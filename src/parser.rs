@@ -4,8 +4,7 @@ use crate::{
     common::Error,
     expression::{Binary, BinaryLogic, BinaryLogicType, Expression, Literal},
     lexer::{PeekableTokenIterator, Token, TokenInfo},
-    opcode::Opcode,
-    value::{Real, Value},
+    value::{Real, Value}, program::Opcode,
 };
 
 pub type ParseResult = Result<Expression, Error>;

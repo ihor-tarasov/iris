@@ -1,8 +1,31 @@
 use crate::common::*;
 use crate::module::*;
-use crate::opcode::Opcode;
 use crate::state::*;
 use crate::value::*;
+
+#[derive(Clone, Copy)]
+pub enum Opcode {
+    Constant(usize),
+    Addict,
+    Subtract,
+    Multiply,
+    Divide,
+    Modulo,
+    And,
+    Or,
+    Xor,
+    Shl,
+    Shr,
+    Equal,
+    NotEqual,
+    Greater,
+    Less,
+    GreaterEqual,
+    LessEqual,
+    JumpFalse(usize),
+    JumpTrue(usize),
+    Jump(usize),
+}
 
 pub struct Program {
     modules: Vec<Module>,

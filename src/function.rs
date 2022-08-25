@@ -1,4 +1,4 @@
-use crate::opcode::Opcode;
+use crate::program::Opcode;
 
 pub struct Function {
     pub opcodes: Box<[Opcode]>,

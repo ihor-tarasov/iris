@@ -3,8 +3,7 @@ use std::ops::Range;
 use crate::{
     builder::{self, Builder},
     common::Error,
-    opcode::Opcode,
-    value::Value,
+    value::Value, program::Opcode,
 };
 
 pub struct Literal {
