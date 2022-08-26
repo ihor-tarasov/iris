@@ -161,10 +161,26 @@ impl Assignment {
     }
 }
 
+pub struct ExprList {
+    pub exprs: Vec<Expression>,
+}
+
+impl ExprList {
+    pub fn build(&self, builder: &mut Builder) -> Result<(), Error> {
+        for i in 0..(self.exprs.len() - 1) {
+            builder::build(&self.exprs[i], builder)?;
+            builder.function_builder.push(Opcode::Drop, 0..0);
+        }
+        builder::build(self.exprs.last().unwrap(), builder)?;
+        Ok(())
+    }
+}
+
 pub enum Expression {
     Literal(Literal),
     Binary(Binary),
     BinaryLogic(BinaryLogic),
     Variable(Variable),
     Assignment(Assignment),
+    ExprList(ExprList),
 }

@@ -2,7 +2,7 @@ use std::{ops::Range, str::FromStr};
 
 use crate::{
     common::Error,
-    expression::{Binary, BinaryLogic, BinaryLogicType, Expression, Literal, Variable, Assignment},
+    expression::*,
     lexer::{PeekableTokenIterator, Token, TokenInfo},
     program::Opcode,
     value::Value,
@@ -24,7 +24,11 @@ fn expect(it: &mut PeekableTokenIterator) -> Result<TokenInfo, Error> {
     }
 }
 
-fn expect_concrete(it: &mut PeekableTokenIterator, token: Token, name: &str) -> Result<TokenInfo, Error> {
+fn expect_concrete(
+    it: &mut PeekableTokenIterator,
+    token: Token,
+    name: &str,
+) -> Result<TokenInfo, Error> {
     let token_info = expect(it)?;
     if token_info.token != token {
         Err(Error {
@@ -75,14 +79,13 @@ fn parse_integer(it: &mut PeekableTokenIterator, location: Range<usize>) -> Pars
 }
 
 fn parse_real(it: &mut PeekableTokenIterator, location: Range<usize>) -> ParseResult {
-    create_literal(
-        Value::Real(parse_u8_str(it, location.clone())?),
-        location,
-    )
+    create_literal(Value::Real(parse_u8_str(it, location.clone())?), location)
 }
 
 fn parse_identifier(it: &mut PeekableTokenIterator, location: Range<usize>) -> ParseResult {
-    let name = std::str::from_utf8(it.slice(location.clone())).unwrap().to_string();
+    let name = std::str::from_utf8(it.slice(location.clone()))
+        .unwrap()
+        .to_string();
 
     if let Some(token_info) = it.peek() {
         if token_info.token == Token::Equal {
@@ -92,19 +95,18 @@ fn parse_identifier(it: &mut PeekableTokenIterator, location: Range<usize>) -> P
                 expr: Box::new(parse_expression(it)?),
                 location: equal_token.location,
                 create_new_variable: false,
-            }))
+            }));
         }
     }
-    Ok(Expression::Variable(Variable {
-        name,
-        location,
-    }))
+    Ok(Expression::Variable(Variable { name, location }))
 }
 
 fn parse_let(it: &mut PeekableTokenIterator) -> ParseResult {
     let identifier_location = expect_concrete(it, Token::Identifier, "identifier")?.location;
     let equal_location = expect_concrete(it, Token::Equal, "\"=\"")?.location;
-    let name = std::str::from_utf8(it.slice(identifier_location)).unwrap().to_string();
+    let name = std::str::from_utf8(it.slice(identifier_location))
+        .unwrap()
+        .to_string();
     Ok(Expression::Assignment(Assignment {
         name,
         expr: Box::new(parse_expression(it)?),
@@ -268,8 +270,21 @@ fn parse_expression(it: &mut PeekableTokenIterator) -> ParseResult {
     parse_binary_or(it)
 }
 
+fn parse_expression_list(it: &mut PeekableTokenIterator) -> ParseResult {
+    let mut exprs = vec![parse_expression(it)?];
+
+    while let Some(token_info) = it.peek() {
+        if token_info.token == Token::Comma {
+            it.next().unwrap();
+            exprs.push(parse_expression(it)?);
+        }
+    }
+
+    Ok(Expression::ExprList(ExprList { exprs }))
+}
+
 pub fn parse(it: &mut PeekableTokenIterator) -> ParseResult {
-    let result = parse_expression(it)?;
+    let result = parse_expression_list(it)?;
 
     match it.next() {
         Some(token_info) => {

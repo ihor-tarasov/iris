@@ -21,6 +21,7 @@ pub enum Token {
     Less,                   // <
     Greater,                // >
     Equal,                  // =
+    Comma,                  // ,
     LessEqual,              // <=
     GreaterEqual,           // >=
     EqualEqual,             // ==
@@ -86,6 +87,7 @@ fn parse_single_token(c: u8) -> Token {
         b'<' => Token::Less,
         b'>' => Token::Greater,
         b'=' => Token::Equal,
+        b',' => Token::Comma,
         _ => Token::Unknown,
     }
 }

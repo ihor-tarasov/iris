@@ -49,6 +49,10 @@ impl State {
         *self.stack.last().unwrap()
     }
 
+    pub fn pop_drop(&mut self) {
+        self.stack.pop();
+    }
+
     pub fn call(&mut self, frame_size: usize, module_index: usize, function_index: usize, params_count: usize) {
         self.frames.push(Frame::new(frame_size));
         self.module_indexes.push(module_index);

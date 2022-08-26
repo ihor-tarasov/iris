@@ -28,6 +28,7 @@ pub enum Opcode {
     StoreLocal(usize),
     LoadLocal(usize),
     Push,
+    Drop,
 }
 
 #[derive(Debug)]
@@ -118,6 +119,7 @@ impl Program {
                 Opcode::StoreLocal(position) => *state.local_mut(position) = state.pop(),
                 Opcode::LoadLocal(position) => state.push(*state.local(position)),
                 Opcode::Push => state.push(state.peek()),
+                Opcode::Drop => state.pop_drop(),
             }
         }
         Ok(state.pop())
