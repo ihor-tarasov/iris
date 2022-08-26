@@ -7,6 +7,7 @@ pub enum Token {
     Identifier,
     True,
     False,
+    Let,
     Plus,                   // +
     Minus,                  // -
     Asterisk,               // *
@@ -19,6 +20,7 @@ pub enum Token {
     Circumflex,             // ^
     Less,                   // <
     Greater,                // >
+    Equal,                  // =
     LessEqual,              // <=
     GreaterEqual,           // >=
     EqualEqual,             // ==
@@ -66,6 +68,7 @@ fn find_keyword(word: &[u8]) -> Option<Token> {
     match word {
         b"false" => Some(Token::False),
         b"true" => Some(Token::True),
+        b"let" => Some(Token::Let),
         _ => None,
     }
 }
@@ -82,6 +85,7 @@ fn parse_single_token(c: u8) -> Token {
         b'^' => Token::Circumflex,
         b'<' => Token::Less,
         b'>' => Token::Greater,
+        b'=' => Token::Equal,
         _ => Token::Unknown,
     }
 }

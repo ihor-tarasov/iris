@@ -25,6 +25,7 @@ impl Eq for Value {}
 
 impl Hash for Value {
     fn hash<H: Hasher>(&self, state: &mut H) {
+        std::mem::discriminant(self).hash(state);
         match *self {
             Value::Bool(value) => value.hash(state),
             Value::Integer(value) => value.hash(state),

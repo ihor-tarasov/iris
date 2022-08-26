@@ -2,7 +2,7 @@ use std::{ops::Range, str::FromStr};
 
 use crate::{
     common::Error,
-    expression::{Binary, BinaryLogic, BinaryLogicType, Expression, Literal},
+    expression::{Binary, BinaryLogic, BinaryLogicType, Expression, Literal, Variable, Assignment},
     lexer::{PeekableTokenIterator, Token, TokenInfo},
     program::Opcode,
     value::Value,
@@ -21,6 +21,18 @@ fn expect(it: &mut PeekableTokenIterator) -> Result<TokenInfo, Error> {
     match it.next() {
         Some(token_info) => Ok(token_info),
         None => unexpected_end(),
+    }
+}
+
+fn expect_concrete(it: &mut PeekableTokenIterator, token: Token, name: &str) -> Result<TokenInfo, Error> {
+    let token_info = expect(it)?;
+    if token_info.token != token {
+        Err(Error {
+            message: format!("Expected {}.", name),
+            location: token_info.location,
+        })
+    } else {
+        Ok(token_info)
     }
 }
 
@@ -69,6 +81,38 @@ fn parse_real(it: &mut PeekableTokenIterator, location: Range<usize>) -> ParseRe
     )
 }
 
+fn parse_identifier(it: &mut PeekableTokenIterator, location: Range<usize>) -> ParseResult {
+    let name = std::str::from_utf8(it.slice(location.clone())).unwrap().to_string();
+
+    if let Some(token_info) = it.peek() {
+        if token_info.token == Token::Equal {
+            let equal_token = it.next().unwrap();
+            return Ok(Expression::Assignment(Assignment {
+                name,
+                expr: Box::new(parse_expression(it)?),
+                location: equal_token.location,
+                create_new_variable: false,
+            }))
+        }
+    }
+    Ok(Expression::Variable(Variable {
+        name,
+        location,
+    }))
+}
+
+fn parse_let(it: &mut PeekableTokenIterator) -> ParseResult {
+    let identifier_location = expect_concrete(it, Token::Identifier, "identifier")?.location;
+    let equal_location = expect_concrete(it, Token::Equal, "\"=\"")?.location;
+    let name = std::str::from_utf8(it.slice(identifier_location)).unwrap().to_string();
+    Ok(Expression::Assignment(Assignment {
+        name,
+        expr: Box::new(parse_expression(it)?),
+        create_new_variable: true,
+        location: equal_location,
+    }))
+}
+
 fn parse_primary(it: &mut PeekableTokenIterator) -> ParseResult {
     let token_info = expect(it)?;
 
@@ -78,6 +122,8 @@ fn parse_primary(it: &mut PeekableTokenIterator) -> ParseResult {
         Token::True => create_literal(Value::Bool(true), token_info.location),
         Token::False => create_literal(Value::Bool(false), token_info.location),
         Token::Unknown => unknown(token_info.location),
+        Token::Identifier => parse_identifier(it, token_info.location),
+        Token::Let => parse_let(it),
         _ => unexpected(token_info.location),
     }
 }

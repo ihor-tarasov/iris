@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use crate::{
-    builder::Builder, expression::Expression, lexer::{PeekableTokenIterator}, program::Program, state::State,
+    builder::Builder, expression::Expression, lexer::PeekableTokenIterator, program::Program,
     value::Value,
 };
 
@@ -34,8 +34,7 @@ fn repl_build(code: &[u8], expression: Expression) -> Result<Program, ReplError>
 }
 
 fn repl_run(mut program: Program) -> Result<Value, ReplError> {
-    let mut state = State::new();
-    program.run(&mut state).map_err(|error| {
+    program.run().map_err(|error| {
         println!("Runtime error: {}", error.message);
         ReplError::SomeError
     })

@@ -3,7 +3,8 @@ use std::ops::Range;
 use crate::{
     builder::{self, Builder},
     common::Error,
-    value::Value, program::Opcode,
+    program::Opcode,
+    value::Value,
 };
 
 pub struct Literal {
@@ -105,8 +106,65 @@ impl BinaryLogic {
     }
 }
 
+fn get_local(builder: &mut Builder, name: &String, location: &Range<usize>) -> Result<usize, Error> {
+    match builder.function_builder.get_local(name) {
+        Some(index) => Ok(index),
+        None => {
+            return Err(Error {
+                message: format!("Can't find variable \"{}\".", name),
+                location: location.clone(),
+            })
+        }
+    }
+}
+
+pub struct Variable {
+    pub name: String,
+    pub location: Range<usize>,
+}
+
+impl Variable {
+    pub fn build(&self, builder: &mut Builder) -> Result<(), Error> {
+        let position = get_local(builder, &self.name, &self.location)?;
+
+        builder
+            .function_builder
+            .push(Opcode::LoadLocal(position), self.location.clone());
+        Ok(())
+    }
+}
+
+pub struct Assignment {
+    pub name: String,
+    pub expr: Box<Expression>,
+    pub create_new_variable: bool,
+    pub location: Range<usize>,
+}
+
+impl Assignment {
+    pub fn build(&self, builder: &mut Builder) -> Result<(), Error> {
+        let position = if self.create_new_variable {
+            builder.function_builder.new_local(&self.name)
+        } else {
+            get_local(builder, &self.name, &self.location)?
+        };
+
+        builder::build(&self.expr, builder)?;
+        builder
+            .function_builder
+            .push(Opcode::Push, self.location.clone());
+        builder
+            .function_builder
+            .push(Opcode::StoreLocal(position), self.location.clone());
+
+        Ok(())
+    }
+}
+
 pub enum Expression {
     Literal(Literal),
     Binary(Binary),
     BinaryLogic(BinaryLogic),
+    Variable(Variable),
+    Assignment(Assignment),
 }
