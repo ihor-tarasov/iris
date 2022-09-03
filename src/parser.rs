@@ -277,6 +277,8 @@ fn parse_expression_list(it: &mut PeekableTokenIterator) -> ParseResult {
         if token_info.token == Token::Comma {
             it.next().unwrap();
             exprs.push(parse_expression(it)?);
+        } else {
+            break;
         }
     }
 
